@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cihaz Durum Sorgulama | Teknik Servis</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    
+    .sorgu-container { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; width: 100%; max-width: 450px; padding: 35px 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); text-align: center; }
+    .logo-area { font-size: 48px; color: #38bdf8; margin-bottom: 15px; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #ffffff; }
+    p.alt-baslik { font-size: 13px; color: #94a3b8; margin-bottom: 25px; }
+    
+    .input-box { position: relative; margin-bottom: 20px; }
+    .input-box input { width: 100%; padding: 14px 15px 14px 45px; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: #fff; font-size: 16px; font-weight: 600; text-transform: uppercase; outline: none; transition: 0.3s; }
+    .input-box input:focus { border-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+    .input-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 18px; }
+    
+    .sorgu-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%); color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+    .sorgu-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4); }
+    
+    .sonuc-card { display: none; margin-top: 25px; background: #0f172a; border-radius: 14px; padding: 20px; text-align: left; border-left: 5px solid #38bdf8; animation: fadeIn 0.4s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .sonuc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
+    .cihaz-adi { font-size: 16px; font-weight: bold; color: #fff; }
+    .durum-rozet { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+    .durum-beklemede { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+    .durum-tamirde { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid #3b82f6; }
+    .durum-hazir { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; }
+    
+    .detail-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #94a3b8; }
+    .detail-row span:last-child { color: #f1f5f9; font-weight: 600; }
+    
+    .hata-mesaj { display: none; margin-top: 20px; color: #ef4444; font-size: 13px; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .footer-text { font-size: 11px; color: #64748b; margin-top: 25px; }
+  </style>
+</head>
+<body>
+
+  <div class="sorgu-container">
+    <div class="logo-area"><i class="fa-solid fa-mobile-screen-button"></i></div>
+    <h1>Teknik Servis Cihaz Sorgulama</h1>
+    <p class="alt-baslik">Cihazınızın durumunu öğrenmek için takip kodunuzu giriniz.</p>
+    
+    <div class="input-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="takipKoduInput" placeholder="Örn: TS-8492" maxlength="10">
+    </div>
+    
+    <button class="sorgu-btn" onclick="cihazSorgula()"><i class="fa-solid fa-paper-plane"></i> Sorgula</button>
+    
+    <div id="hataKutusu" class="hata-mesaj">Kayıt bulunamadı. Lütfen takip kodunu kontrol edip tekrar deneyiniz.</div>
+
+    <div id="sonucCard" class="sonuc-card">
+      <div class="sonuc-header">
+        <span class="cihaz-adi" id="resCihaz">iPhone 11 Pro</span>
+        <span class="durum-rozet durum-hazir" id="resRozet">🟢 HAZIR</span>
+      </div>
+      <div class="detail-row">
+        <span>Müşteri:</span>
+        <span id="resMusteri">Ahmet Y***</span>
+      </div>
+      <div class="detail-row">
+        <span>Takip Kodu:</span>
+        <span id="resKod">TS-8492</span>
+      </div>
+      <div class="detail-row">
+        <span>Arıza Tespiti:</span>
+        <span id="resAriza">Ekran Değişimi</span>
+      </div>
+      <div class="detail-row">
+        <span>Servis Ücreti:</span>
+        <span id="resUcret">1,500 TL</span>
+      </div>
+    </div>
+
+    <div class="footer-text">© 2026 Teknik Servis Müşteri Bilgilendirme Portalı</div>
+  </div>
+
+  <script>
+    // URL'den Otomatik Kod Okuma
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const kod = urlParams.get('kod');
+      if (kod) {
+        document.getElementById('takipKoduInput').value = kod;
+        cihazSorgula();
+      }
+    };
+
+    function cihazSorgula() {
+      const kod = document.getElementById('takipKoduInput').value.trim().toUpperCase();
+      const sonucCard = document.getElementById('sonucCard');
+      const hataKutusu = document.getElementById('hataKutusu');
+
+      if (!kod) {
+        hataKutusu.innerText = "Lütfen geçerli bir takip kodu giriniz!";
+        hataKutusu.style.display = "block";
+        sonucCard.style.display = "none";
+        return;
+      }
+
+      // Örnek Test Verisi
+      if (kod === "TS-8492" || kod === "TS-1001") {
+        hataKutusu.style.display = "none";
+        document.getElementById('resCihaz').innerText = "iPhone 11 Pro";
+        document.getElementById('resMusteri').innerText = "Mehmet Y***";
+        document.getElementById('resKod').innerText = kod;
+        document.getElementById('resAriza').innerText = "Ekran & Batarya Değişimi";
+        document.getElementById('resUcret').innerText = "2,200 TL";
+        
+        const rozet = document.getElementById('resRozet');
+        rozet.className = "durum-rozet durum-hazir";
+        rozet.innerText = "🟢 HAZIR (Teslim Alabilirsiniz)";
+
+        sonucCard.style.display = "block";
+      } else {
+        sonucCard.style.display = "none";
+        hataKutusu.innerText = "Girdiğiniz takip koduna ait bir cihaz kaydı bulunamadı.";
+        hataKutusu.style.display = "block";
+      }
+    }
+  </script>
+</body>
+</html>
