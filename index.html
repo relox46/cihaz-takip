@@ -83,6 +83,7 @@
 
   <script>
     const API_KEY = "$2a$10$m3oNNXGfB95OWmrRm1D8xeSn3Me2ks8g.ombnuIydhFg98qS7bwOe";
+    const BIN_ID = "6a79ee21da38895dfed17d45";
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -108,14 +109,7 @@
       hataKutusu.style.display = "none";
 
       try {
-        const binId = localStorage.getItem('web_bin_id');
-        if (!binId) {
-          hataKutusu.innerText = "Henüz bulutta cihaz kaydı yok. Lütfen dükkan programından güncelleyin.";
-          hataKutusu.style.display = "block";
-          return;
-        }
-
-        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
           headers: { 'X-Master-Key': API_KEY }
         });
 
@@ -126,7 +120,9 @@
         const kayit = liste.find(k => k.takipKodu && k.takipKodu.toUpperCase() === kod);
 
         if (kayit) {
-          const mAd = kayit.musteriAdi ? kayit.musteriAdi.split(' ')[0] + ' ' + kayit.musteriAdi.split(' ')[1]?.charAt(0) + '***' : 'Müşteri';
+          const isimParcalari = kayit.musteriAdi ? kayit.musteriAdi.trim().split(' ') : ['Müşteri'];
+          const mAd = isimParcalari[0] + (isimParcalari.length > 1 ? ' ' + isimParcalari[1].charAt(0) + '***' : '');
+          
           document.getElementById('resCihaz').innerText = kayit.cihazModeli;
           document.getElementById('resMusteri').innerText = mAd;
           document.getElementById('resKod').innerText = kayit.takipKodu;
@@ -155,7 +151,7 @@
           hataKutusu.style.display = "block";
         }
       } catch (err) {
-        hataKutusu.innerText = "Veri çekilirken sunucu hatası oluştu.";
+        hataKutusu.innerText = "Sorgulama esnasında bir bağlantı hatası oluştu.";
         hataKutusu.style.display = "block";
       }
     }
