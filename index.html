@@ -57,24 +57,24 @@
 
     <div id="sonucCard" class="sonuc-card">
       <div class="sonuc-header">
-        <span class="cihaz-adi" id="resCihaz">iPhone 11 Pro</span>
-        <span class="durum-rozet durum-hazir" id="resRozet">🟢 HAZIR</span>
+        <span class="cihaz-adi" id="resCihaz">Cihaz Yükleniyor...</span>
+        <span class="durum-rozet" id="resRozet">YÜKLENİYOR</span>
       </div>
       <div class="detail-row">
         <span>Müşteri:</span>
-        <span id="resMusteri">Ahmet Y***</span>
+        <span id="resMusteri">-</span>
       </div>
       <div class="detail-row">
         <span>Takip Kodu:</span>
-        <span id="resKod">TS-8492</span>
+        <span id="resKod">-</span>
       </div>
       <div class="detail-row">
         <span>Arıza Tespiti:</span>
-        <span id="resAriza">Ekran Değişimi</span>
+        <span id="resAriza">-</span>
       </div>
       <div class="detail-row">
         <span>Servis Ücreti:</span>
-        <span id="resUcret">1,500 TL</span>
+        <span id="resUcret">- TL</span>
       </div>
     </div>
 
@@ -82,7 +82,8 @@
   </div>
 
   <script>
-    // URL'den Otomatik Kod Okuma
+    const API_KEY = "$2a$10$m3oNNXGfB95OWmrRm1D8xeSn3Me2ks8g.ombnuIydhFg98qS7bwOe";
+
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
       const kod = urlParams.get('kod');
@@ -92,7 +93,7 @@
       }
     };
 
-    function cihazSorgula() {
+    async function cihazSorgula() {
       const kod = document.getElementById('takipKoduInput').value.trim().toUpperCase();
       const sonucCard = document.getElementById('sonucCard');
       const hataKutusu = document.getElementById('hataKutusu');
@@ -104,23 +105,57 @@
         return;
       }
 
-      // Örnek Test Verisi
-      if (kod === "TS-8492" || kod === "TS-1001") {
-        hataKutusu.style.display = "none";
-        document.getElementById('resCihaz').innerText = "iPhone 11 Pro";
-        document.getElementById('resMusteri').innerText = "Mehmet Y***";
-        document.getElementById('resKod').innerText = kod;
-        document.getElementById('resAriza').innerText = "Ekran & Batarya Değişimi";
-        document.getElementById('resUcret').innerText = "2,200 TL";
-        
-        const rozet = document.getElementById('resRozet');
-        rozet.className = "durum-rozet durum-hazir";
-        rozet.innerText = "🟢 HAZIR (Teslim Alabilirsiniz)";
+      hataKutusu.style.display = "none";
 
-        sonucCard.style.display = "block";
-      } else {
-        sonucCard.style.display = "none";
-        hataKutusu.innerText = "Girdiğiniz takip koduna ait bir cihaz kaydı bulunamadı.";
+      try {
+        const binId = localStorage.getItem('web_bin_id');
+        if (!binId) {
+          hataKutusu.innerText = "Henüz bulutta cihaz kaydı yok. Lütfen dükkan programından güncelleyin.";
+          hataKutusu.style.display = "block";
+          return;
+        }
+
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+          headers: { 'X-Master-Key': API_KEY }
+        });
+
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        const liste = data.record || [];
+        const kayit = liste.find(k => k.takipKodu && k.takipKodu.toUpperCase() === kod);
+
+        if (kayit) {
+          const mAd = kayit.musteriAdi ? kayit.musteriAdi.split(' ')[0] + ' ' + kayit.musteriAdi.split(' ')[1]?.charAt(0) + '***' : 'Müşteri';
+          document.getElementById('resCihaz').innerText = kayit.cihazModeli;
+          document.getElementById('resMusteri').innerText = mAd;
+          document.getElementById('resKod').innerText = kayit.takipKodu;
+          document.getElementById('resAriza').innerText = kayit.sorunAramasi;
+          document.getElementById('resUcret').innerText = kayit.tahminiUcret + " TL";
+
+          const rozet = document.getElementById('resRozet');
+          if (kayit.durum === 'Beklemede') {
+            rozet.className = "durum-rozet durum-beklemede";
+            rozet.innerText = "⏳ BEKLEMEDE";
+          } else if (kayit.durum === 'Tamirde') {
+            rozet.className = "durum-rozet durum-tamirde";
+            rozet.innerText = "🛠️ TAMİRDE";
+          } else if (kayit.durum === 'Hazır') {
+            rozet.className = "durum-rozet durum-hazir";
+            rozet.innerText = "🟢 HAZIR (TESLİM ALABİLİRSİNİZ)";
+          } else {
+            rozet.className = "durum-rozet";
+            rozet.innerText = kayit.durum;
+          }
+
+          sonucCard.style.display = "block";
+        } else {
+          sonucCard.style.display = "none";
+          hataKutusu.innerText = "Girdiğiniz takip koduna ait cihaz bulunamadı.";
+          hataKutusu.style.display = "block";
+        }
+      } catch (err) {
+        hataKutusu.innerText = "Veri çekilirken sunucu hatası oluştu.";
         hataKutusu.style.display = "block";
       }
     }
